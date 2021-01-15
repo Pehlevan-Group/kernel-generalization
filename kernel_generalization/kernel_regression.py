@@ -2,7 +2,7 @@ import numpy as np
 import scipy as sp
 import scipy.special
 import scipy.stats
-import gegenbauer
+import utils.gegenbauer as gegenbauer
 import matplotlib.pyplot as plt
 import numba
 from numba import jit, int64
