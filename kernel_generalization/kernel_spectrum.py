@@ -1,13 +1,12 @@
 import numpy as np
 import math
 import matplotlib.pyplot as plt
-import gegenbauer
+import utils.gegenbauer as gegenbauer
 import scipy as sp
 import scipy.special
 import scipy.optimize
  
-import gegenbauer
-import neural_tangent_kernel as ntk
+import utils.neural_tangent_kernel as ntk
 
 ###############################################################
 ################# Use Only These Functions ####################
