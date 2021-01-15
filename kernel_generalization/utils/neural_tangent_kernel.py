@@ -1,12 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.ticker import (MultipleLocator, FormatStrFormatter, AutoMinorLocator)
-from scipy.fftpack import fft
 from scipy.optimize import curve_fit
-
-import gegenbauer
-import kernel_spectrum as ker_spec
-
 
 ## First define the arcos kernel
 
