@@ -1,10 +1,5 @@
 import numpy as np
 import scipy as sp
-import scipy.special
-import scipy.misc
-import math
-import matplotlib.pyplot as plt
-import numba
 from numba import jit, int64
 
 ###############################################################
@@ -56,7 +51,7 @@ def degeneracy_kernel(dim, k):
 
 
 def surface_area(d):
-    return 2 * math.pi ** (d / 2) / sp.special.gamma(d / 2)
+    return 2 * np.pi ** (d / 2) / sp.special.gamma(d / 2)
 
 ###############################################################
 ################# Use Only These Functions ####################
