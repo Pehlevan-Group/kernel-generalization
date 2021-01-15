@@ -1,1 +1,1 @@
-# kernel_regression
+# Theory of Kernel Generalization  
