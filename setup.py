@@ -17,10 +17,9 @@ setup(
     author='Pehlevan Group',
     author_email='canatara@gmail.com',
     install_requires=INSTALL_REQUIRES,
-    url='https://github.com/Pehlevan-Group/kernel_generalization',
+    url='https://github.com/Pehlevan-Group/kernel-generalization',
     long_description=long_description,
     packages=["kernel_generalization"],
-    package_dir={"kernel_generalization":"kernel_generalization"},
     long_description_content_type='text/markdown',
     description='Theory of Kernel Generalization',
     python_requires='>=3.6')
