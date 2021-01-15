@@ -12,7 +12,7 @@ INSTALL_REQUIRES = [
 ]
 
 setup(
-    name='kernel_generalization',
+    name='kernel-generalization',
     license='Apache 2.0',
     author='Pehlevan Group',
     author_email='canatara@gmail.com',
