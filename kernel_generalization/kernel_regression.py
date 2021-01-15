@@ -2,7 +2,7 @@ import numpy as np
 import scipy as sp
 import scipy.special
 import scipy.stats
-import utils.gegenbauer as gegenbauer
+from kernel_generalization.utils import gegenbauer
 import matplotlib.pyplot as plt
 import numba
 from numba import jit, int64
@@ -286,5 +286,3 @@ def rbf_regression_expt_gpu(pvals, pteach, dim ,gamma, sigma, lamb, num_avg, noi
 
     
     return cp.asnumpy(errs), cp.asnumpy(stds)
-    
-    
