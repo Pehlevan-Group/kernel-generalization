@@ -1,4 +1,5 @@
-from kernel_generalization.utils import utils
+from kernel_generalization.utils import gegenbauer
+from kernel_generalization.utils import neural_tangent_kernel
 from kernel_generalization import kernel_simulation
 from kernel_generalization import kernel_spectrum
 from kernel_generalization import kernel_regression
