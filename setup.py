@@ -20,6 +20,7 @@ setup(
     url='https://github.com/Pehlevan-Group/kernel_generalization',
     long_description=long_description,
     packages=find_packages(),
+    package_dir={"kernel_generalization":"kernel_generalization"},
     long_description_content_type='text/markdown',
     description='Theory of Kernel Generalization',
     python_requires='>=3.6')
