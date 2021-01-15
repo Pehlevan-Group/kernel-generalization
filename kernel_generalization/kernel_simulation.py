@@ -4,7 +4,6 @@ import scipy.optimize
 import scipy.integrate
 import scipy.special
 import matplotlib.pyplot as plt
-import gegenbauer
 import math
 
 ###############################################################
