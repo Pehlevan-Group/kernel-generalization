@@ -1,4 +1,4 @@
-from setuptools import setup, find_packages
+from setuptools import setup, find_packages, find_namespace_packages
 
 # read the contents of your README file
 from os import path
@@ -19,7 +19,7 @@ setup(
     install_requires=INSTALL_REQUIRES,
     url='https://github.com/Pehlevan-Group/kernel-generalization',
     long_description=long_description,
-    packages=find_packages(),
+    packages=find_namespace_packages()#find_packages(),
     long_description_content_type='text/markdown',
     description='Theory of Kernel Generalization',
     python_requires='>=3.6')
