@@ -1,6 +1,6 @@
 # Theory of Kernel Generalization  
 
-Paper experiments:
+## Paper experiments:
 
 Synthetic Data - Gaussian Regression: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Pehlevan-Group/kernel-generalization/blob/main/Experiments/SynthData_GaussianRegression.ipynb)
 
@@ -14,7 +14,7 @@ Real Data - NTK Regression and NN: [![Open In Colab](https://colab.research.goog
 
 
 
-Recreate the figures using precomputed data:
+## Recreate the figures using precomputed data:
 
 Figure 1: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Pehlevan-Group/kernel-generalization/blob/main/PaperFigures/Fig1_MNIST_Classification.ipynb)
 
