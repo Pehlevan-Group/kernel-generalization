@@ -17,7 +17,7 @@ def gegenbauer(x, kmax, d):
         Q[k, :] = 1 / k * (2 * x * (k + alpha - 1) * Q[k - 1, :] - (k + 2 * alpha - 2) * Q[k - 2, :])
     return Q
     
-def gegenbauer_gpu(x, kmax, d, cpu = False):
+def gegenbauer_gpu(x, kmax, d):
     import cupy as cp
     alpha = d / 2 - 1
     
@@ -26,20 +26,11 @@ def gegenbauer_gpu(x, kmax, d, cpu = False):
     for k_m in range(kmax - 2):
         k = k_m + 2
         Q[k, :] = 1 / k * (2 * x * (k + alpha - 1) * Q[k - 1, :] - (k + 2 * alpha - 2) * Q[k - 2, :])
-
-    if cpu:    
-        Q_cpu = cp.asnumpy(Q)
-        del Q
-        cp.get_default_memory_pool().free_all_blocks()
-        cp.get_default_pinned_memory_pool().free_all_blocks()
-        return Q_cpu
        
     del x
     cp.get_default_memory_pool().free_all_blocks()
     cp.get_default_pinned_memory_pool().free_all_blocks()
-    
     return Q
-
 
 def eigenvalue_normalization(kmax, alpha, degens):
     area_ratio = surface_area(2 * alpha + 2) / surface_area(2 * alpha + 1)
