@@ -17,15 +17,27 @@ def gegenbauer(x, kmax, d):
         Q[k, :] = 1 / k * (2 * x * (k + alpha - 1) * Q[k - 1, :] - (k + 2 * alpha - 2) * Q[k - 2, :])
     return Q
     
-def gegenbauer_gpu(x, kmax, d):
+def gegenbauer_gpu(x, kmax, d, cpu = False):
     import cupy as cp
     alpha = d / 2 - 1
+    
     Q = cp.zeros((kmax, len(x)))
-    Q[0, :] = cp.ones(len(x))
     Q[1, :] = 2 * alpha * x
     for k_m in range(kmax - 2):
         k = k_m + 2
         Q[k, :] = 1 / k * (2 * x * (k + alpha - 1) * Q[k - 1, :] - (k + 2 * alpha - 2) * Q[k - 2, :])
+
+    if cpu:    
+        Q_cpu = cp.asnumpy(Q)
+        del Q
+        cp.get_default_memory_pool().free_all_blocks()
+        cp.get_default_pinned_memory_pool().free_all_blocks()
+        return Q_cpu
+       
+    del x
+    cp.get_default_memory_pool().free_all_blocks()
+    cp.get_default_pinned_memory_pool().free_all_blocks()
+    
     return Q
 
 
