@@ -42,7 +42,7 @@ def gamma_fn(p, kappa, spectrum, degens = []):
     return p * degens * spectrum**2 / (kappa + spectrum*p)**2
 
 
-def mode_error_pure(p, kappa, spectrum, degens, lamb, noise_var, pure_mode = None, zero_mode = False, gamma_1 = False):
+def mode_error_pure(p, kappa, spectrum, degens, lamb, noise_var, pure_mode = None, zero_mode = False, lambda_0 = True):
     gamma = gamma_fn(p, kappa, spectrum, degens)
     coeff = 1 / (1 - np.sum(gamma))
     noiseless_term = kappa**2 * gamma/p
@@ -56,21 +56,18 @@ def mode_error_pure(p, kappa, spectrum, degens, lamb, noise_var, pure_mode = Non
     else:
         noisless_pure = 1
     
-    if gamma_1:
-        noiseless_term = noiseless_term * degens
-    
     mode_error = coeff * (noiseless_term*noisless_pure + noise_term)
     
     if zero_mode:
         mode_error[0] = kappa**2*spectrum[0]**2/(2*p*spectrum[0]+kappa)**2*(1+np.sum(gamma))/(1-np.sum(gamma))
-    else:
+    elif lambda_0:
         mode_error[0] = 0
     
     cum_gen_error =  mode_error + coeff* np.append(np.cumsum(spectrum[1:]**2*degens[1:]),[0]) * gamma
     
     return mode_error, cum_gen_error
    
-def simulate_pure_gen_error(pvals, spectrum, degens, noise_var, pure_mode = None, lamb=1e-10, zero_mode = False, gamma_1 = False):
+def simulate_pure_gen_error(pvals, spectrum, degens, noise_var, pure_mode = None, lamb=1e-10, zero_mode = False, lambda_0 = True):
     kappa = solve_kappa(pvals, lamb, spectrum, degens)
 
     errs_tot = np.zeros((len(pvals), len(noise_var)))
@@ -82,7 +79,7 @@ def simulate_pure_gen_error(pvals, spectrum, degens, noise_var, pure_mode = None
         for i in range(len(pvals)):
             mode_errs[i, :, j], cum_gen_errs[i,:,j] = mode_error_pure(pvals[i], kappa[i], spectrum, degens, 
                                                                  lamb, noise, pure_mode = pure_mode,
-                                                                 zero_mode = zero_mode, gamma_1 = gamma_1)
+                                                                 zero_mode = zero_mode, lambda_0 = lambda_0)
             errs_tot[i, j] = np.sum(mode_errs[i, :, j])
 
     return mode_errs, errs_tot, cum_gen_errs
