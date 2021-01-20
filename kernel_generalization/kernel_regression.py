@@ -119,92 +119,131 @@ def dot_prod_gpu(X,Y):
     import cupy as cp
     return cp.dot(X,Y)
 
-def compute_kernel_gpu(X, Xp, spectrum, degens, dim, kmax):
+def compute_kernel_gpu(gram, P, Pp, spectrum, degens, dim, kmax, cpu = False):
     import cupy as cp
     alpha = (dim - 2) / 2
     k = np.linspace(0, kmax - 1, kmax)
-    spec = spectrum * (k / alpha + 1)
-    P = X.shape[0]
-    Pp = Xp.shape[0]
-    gram = cp.dot(X, Xp.T)
-    gram = cp.reshape(gram, P * Pp)
-    Q = gegenbauer.gegenbauer_gpu(gram, kmax, dim)
-    K = cp.dot(Q.T, cp.asarray(spec)).reshape(P, Pp)
-    return K
+    spec = cp.asarray(spectrum * (k / alpha + 1))
+
+    Q = gegenbauer.gegenbauer_gpu(gram, kmax, dim, cpu)
+    if cpu:
+        Q = cp.asarray(Q)
     
-def generalization_gpu(P_stu, P_teach, P_test, spectrum, degens, dim, kmax, num_repeats, lamb=0, noise_var=0):
+    K = cp.dot(Q.T, spec)
+    K = cp.reshape(K, (P, Pp))
+    
+    del gram, spectrum, spec, Q, k
+    cp.get_default_memory_pool().free_all_blocks()
+    cp.get_default_pinned_memory_pool().free_all_blocks()
+    
+    return K #, Q
+
+def generalization_gpu(P_stu, P_teach, P_test, spectrum, degens, dim, kmax, num_repeats, lamb=0, noise_var=0, cpu = False):
     import cupy as cp
-    errors_avg = np.zeros((kmax, len(noise_var)))
-    errors_tot_MC = np.zeros(len(noise_var))
-    all_errs = np.zeros((num_repeats, kmax, len(noise_var)))
-    all_MC = np.zeros((num_repeats, len(noise_var)))
+    errors_avg = cp.zeros((kmax, len(noise_var)))
+    errors_tot_MC = cp.zeros(len(noise_var))
+    all_errs = cp.zeros((num_repeats, kmax, len(noise_var)))
+    all_MC = cp.zeros((num_repeats, len(noise_var)))
 
     for i in range(num_repeats):
         #############################################
-        # Define student and teacher inputs
-        X_teach = sample_random_points_gpu(P_teach, dim)
-        X_stu = sample_random_points_gpu(P_stu, dim)
+        # Define student and teacher inputs and the gram matrices
+        X_teach = cp.asarray(sample_random_points(P_teach, dim))
+        X_stu = cp.asarray(sample_random_points(P_stu, dim))
+        X_test = cp.asarray(sample_random_points(P_test, dim))
+        
+        gram_ss = cp.dot(X_stu, X_stu.T).reshape(P_stu*P_stu)
+        gram_st = cp.dot(X_stu, X_teach.T).reshape(P_stu*P_teach)
+        gram_tt = cp.dot(X_teach, X_teach.T).reshape(P_teach*P_teach)
+        
+        gram_stest = cp.dot(X_stu, X_test.T).reshape(P_stu*P_test)
+        gram_ttest = cp.dot(X_teach, X_test.T).reshape(P_teach*P_test)
 
-        # Calculate the kernel Gram matrices
-        K_student = compute_kernel_gpu(X_stu, X_stu, spectrum, degens, dim, kmax)
-        K_stu_te = compute_kernel_gpu(X_stu, X_teach, spectrum, degens, dim, kmax)
+        # Calculate the kernel Gram matrices and Gegenbaur polys
+        K_student = compute_kernel(gram_ss, P_stu, P_stu, spectrum, degens, dim, kmax, cpu)
+        K_stu_te = compute_kernel(gram_st, P_stu, P_teach, spectrum, degens, dim, kmax, cpu)
+            
+        K_s = compute_kernel(gram_stest, P_stu, P_test, spectrum, degens, dim, kmax, cpu).T
+        K_t = compute_kernel(gram_ttest, P_teach, P_test, spectrum, degens, dim, kmax, cpu).T
+        
+        Q_ss = gegenbauer.gegenbauer_gpu(gram_ss, kmax, dim, cpu)
+        Q_st = gegenbauer.gegenbauer_gpu(gram_st, kmax, dim, cpu)
+        Q_tt = gegenbauer.gegenbauer_gpu(gram_tt, kmax, dim, cpu)
+        
+                
+        del X_teach, X_stu, X_test
+        cp.get_default_memory_pool().free_all_blocks()
+        cp.get_default_pinned_memory_pool().free_all_blocks()
+
 
         # Define the teacher function corrupted by noise (target function)
         sigma = np.random.normal(0, np.sqrt(noise_var*P_teach), (P_stu, len(noise_var)))
-        alpha_teach = cp.sign(cp.random.random_sample(P_teach) - 0.5 * cp.ones(P_teach))
-        alpha_teach = cp.outer(alpha_teach, cp.ones(len(noise_var)))
+        alpha_teach = np.sign(np.random.random_sample(P_teach) - 0.5 * np.ones(P_teach))
+        alpha_teach = cp.outer(cp.asarray(alpha_teach), cp.ones(len(noise_var)))
         y_teach = cp.dot(K_stu_te, alpha_teach) + cp.asarray(sigma)
         
 
         # Calculate the regression result for student function
-        K_inv = cp.linalg.inv(K_student + lamb * cp.eye(P_stu))
+        K_inv = cp.linalg.inv(cp.asarray(K_student) + lamb * cp.eye(P_stu))
         alpha_stu = cp.dot(K_inv, y_teach)
 
-        gram_ss = cp.dot(X_stu, X_stu.T)
-        gram_st = cp.dot(X_stu, X_teach.T)
-        gram_tt = cp.dot(X_teach, X_teach.T)
-
-        Q_ss = gegenbauer.gegenbauer_gpu(gram_ss.reshape(P_stu ** 2), kmax, dim)
-        Q_st = gegenbauer.gegenbauer_gpu(gram_st.reshape(P_stu * P_teach), kmax, dim)
-        Q_tt = gegenbauer.gegenbauer_gpu(gram_tt.reshape(P_teach ** 2), kmax, dim)
 
         errors = cp.zeros((kmax, len(noise_var)))
         for k in range(kmax):
-            Q_ssk = Q_ss[k].reshape(P_stu, P_stu)
-            Q_stk = Q_st[k].reshape(P_stu, P_teach)
-            Q_ttk = Q_tt[k].reshape(P_teach, P_teach)
+            Q_ssk = cp.asarray(Q_ss[k].reshape(P_stu, P_stu))
+            Q_stk = cp.asarray(Q_st[k].reshape(P_stu, P_teach))
+            Q_ttk = cp.asarray(Q_tt[k].reshape(P_teach, P_teach))
             a = (dim - 2) / 2
             prefactor = spectrum[k] ** 2 * (k + a) / a
             
             alpha_tt = (alpha_teach[:,0].T).dot(Q_ttk.dot(alpha_teach[:,0]))
             for n in range(len(noise_var)):
-                alpha_ss = cp.dot(alpha_stu[:,n].T, Q_ssk.dot(alpha_stu[:,n]))
-                alpha_st = cp.dot(alpha_stu[:,n].T, Q_stk.dot(alpha_teach[:,n]))
+                alpha_ss = (alpha_stu[:,n].T).dot(Q_ssk.dot(alpha_stu[:,n]))
+                alpha_st = (alpha_stu[:,n].T).dot(Q_stk.dot(alpha_teach[:,n]))
+                
+                errors[k,n] = prefactor * (alpha_ss - 2 * alpha_st + alpha_tt)
+            
+            
+            del alpha_tt, alpha_ss, alpha_st, Q_ssk, Q_stk, Q_ttk
+            cp.get_default_memory_pool().free_all_blocks()
+            cp.get_default_pinned_memory_pool().free_all_blocks()
 
-                errors[k,n] = cp.asarray(prefactor) * (alpha_ss - 2 * alpha_st + alpha_tt)
-
-        errors_avg += cp.asnumpy(errors) / num_repeats
-        all_errs[i] = cp.asnumpy(errors)
-
-        X_test = sample_random_points_gpu(P_test, dim)
-        K_s = compute_kernel_gpu(X_stu, X_test, spectrum, degens, dim, kmax)
-        K_t = compute_kernel_gpu(X_teach, X_test, spectrum, degens, dim, kmax)
-
-        y_s = cp.dot(K_s.T, alpha_stu)
-        y_t = cp.dot(K_t.T, alpha_teach)
+        errors_avg += errors / num_repeats
+        all_errs[i] = errors
+        
+        y_s = cp.dot(K_s, alpha_stu)
+        y_t = cp.dot(K_t, alpha_teach)
         tot_error = cp.mean((y_s - y_t)**2, axis = 0)
         
-        errors_tot_MC += cp.asnumpy(tot_error)/ num_repeats
-        all_MC[i] = cp.asnumpy(tot_error)
+        del K_student, K_stu_te, Q_ss, Q_st, Q_tt, K_s, K_t, y_s, y_t, gram_ss, gram_st, gram_tt
+        cp.get_default_memory_pool().free_all_blocks()
+        cp.get_default_pinned_memory_pool().free_all_blocks()
+        
+        errors_tot_MC += tot_error/ num_repeats
+        all_MC[i] = tot_error
 
-        error_diff = np.abs(cp.asnumpy(tot_error) - np.sum(cp.asnumpy(errors), axis = 0))/ cp.asnumpy(tot_error)
+        error_diff = np.abs(tot_error - np.sum(errors, axis = 0))/ tot_error
         curr_err = errors_tot_MC/(i+1)
-            
+        
+        print('P = ' + "%0.02f: " % P_stu + str(i + 1) + "/" + str(num_repeats) 
+              + " error: " + "%0.03f" % np.mean(error_diff), end='\r')
+    
+    
+    
+    all_errs_cpu = cp.asnumpy(all_errs)
+    all_MC_cpu = cp.asnumpy(all_MC)
+    errors_avg_cpu = cp.asnumpy(errors_avg)
+    errors_tot_MC_cpu = cp.asnumpy(errors_tot_MC)
+    
+    std_errs = np.array([np.std(all_errs_cpu[:,:,i], axis=0) for i in range(len(noise_var))]).T
+    std_MC = np.array([np.std(all_MC_cpu[:,i]) for i in range(len(noise_var))])
+    
+    
+    del all_errs, all_MC, errors_avg, errors_tot_MC
+    cp.get_default_memory_pool().free_all_blocks()
+    cp.get_default_pinned_memory_pool().free_all_blocks()
 
-    std_errs = np.array([sp.stats.sem(all_errs[:,:,i], axis=0) for i in range(len(noise_var))]).T
-    std_MC = np.array([sp.stats.sem(all_MC[:,i]) for i in range(len(noise_var))])
-
-    return errors_avg/P_teach, errors_tot_MC/P_teach, std_errs/P_teach, std_MC/P_teach
+    return errors_avg_cpu/P_teach, errors_tot_MC_cpu/P_teach, std_errs/P_teach, std_MC/P_teach
     
 ### On GPU
     
