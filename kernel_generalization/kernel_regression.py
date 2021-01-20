@@ -168,7 +168,7 @@ def generalization_gpu(P_stu, P_teach, P_test, spectrum, degens, dim, kmax, num_
         Q_st = gegenbauer.gegenbauer_gpu(gram_st.reshape(P_stu * P_teach), kmax, dim)
         Q_tt = gegenbauer.gegenbauer_gpu(gram_tt.reshape(P_teach ** 2), kmax, dim)
 
-        errors = np.zeros((kmax, len(noise_var)))
+        errors = cp.zeros((kmax, len(noise_var)))
         for k in range(kmax):
             Q_ssk = Q_ss[k].reshape(P_stu, P_stu)
             Q_stk = Q_st[k].reshape(P_stu, P_teach)
@@ -178,10 +178,10 @@ def generalization_gpu(P_stu, P_teach, P_test, spectrum, degens, dim, kmax, num_
             
             alpha_tt = (alpha_teach[:,0].T).dot(Q_ttk.dot(alpha_teach[:,0]))
             for n in range(len(noise_var)):
-                alpha_ss = (alpha_stu[:,n].T).dot(Q_ssk.dot(alpha_stu[:,n]))
-                alpha_st = (alpha_stu[:,n].T).dot(Q_stk.dot(alpha_teach[:,n]))
+                alpha_ss = cp.dot(alpha_stu[:,n].T, Q_ssk.dot(alpha_stu[:,n]))
+                alpha_st = cp.dot(alpha_stu[:,n].T, Q_stk.dot(alpha_teach[:,n]))
 
-                errors[k,n] = prefactor * (alpha_ss - 2 * alpha_st + alpha_tt)
+                errors[k,n] = cp.asarray(prefactor) * (alpha_ss - 2 * alpha_st + alpha_tt)
 
         errors_avg += cp.asnumpy(errors) / num_repeats
         all_errs[i] = cp.asnumpy(errors)
