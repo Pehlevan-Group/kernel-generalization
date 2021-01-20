@@ -30,7 +30,6 @@ def compute_kernel(X, Xp, spectrum, degens, dim, kmax):
     gram = np.reshape(gram, P * Pp)
     
     Q = gegenbauer.gegenbauer(gram, kmax, dim)
-    
     K = dot_prod(Q.T, spec).reshape(P, Pp)
     
     return K
@@ -57,7 +56,6 @@ def generalization(P_stu, P_teach, P_test, spectrum, degens, dim, kmax, num_repe
         alpha_teach = np.outer(alpha_teach, np.ones(len(noise_var)))
         y_teach = dot_prod(K_stu_te, alpha_teach) + sigma
         
-
         # Calculate the regression result for student function
         K_inv = np.linalg.inv(K_student + lamb * np.eye(P_stu))
         alpha_stu = dot_prod(K_inv, y_teach)
@@ -101,34 +99,19 @@ def generalization(P_stu, P_teach, P_test, spectrum, degens, dim, kmax, num_repe
 
         error_diff = np.abs(tot_error - np.sum(errors, axis = 0))/ tot_error
         curr_err = errors_tot_MC/(i+1)
-            
-
+   
     std_errs = np.array([sp.stats.sem(all_errs[:,:,i], axis=0) for i in range(len(noise_var))]).T
     std_MC = np.array([sp.stats.sem(all_MC[:,i]) for i in range(len(noise_var))])
 
     return errors_avg/P_teach, errors_tot_MC/P_teach, std_errs/P_teach, std_MC/P_teach
-    
-def sample_random_points_gpu(num_pts, d):
-    import cupy as cp
-    R = cp.random.multivariate_normal(cp.zeros(d), cp.eye(d), num_pts)
-    for i in range(num_pts):
-        R[i, :] = R[i, :] / cp.linalg.norm(R[i, :])
-    return R
 
-def dot_prod_gpu(X,Y):
-    import cupy as cp
-    return cp.dot(X,Y)
-
-def compute_kernel_gpu(gram, P, Pp, spectrum, degens, dim, kmax, cpu = False):
+def compute_kernel_gpu(gram, P, Pp, spectrum, degens, dim, kmax):
     import cupy as cp
     alpha = (dim - 2) / 2
     k = np.linspace(0, kmax - 1, kmax)
     spec = cp.asarray(spectrum * (k / alpha + 1))
 
-    Q = gegenbauer.gegenbauer_gpu(gram, kmax, dim, cpu)
-    if cpu:
-        Q = cp.asarray(Q)
-    
+    Q = gegenbauer.gegenbauer_gpu(gram, kmax, dim, cpu)    
     K = cp.dot(Q.T, spec)
     K = cp.reshape(K, (P, Pp))
     
@@ -169,24 +152,20 @@ def generalization_gpu(P_stu, P_teach, P_test, spectrum, degens, dim, kmax, num_
         Q_ss = gegenbauer.gegenbauer_gpu(gram_ss, kmax, dim, cpu)
         Q_st = gegenbauer.gegenbauer_gpu(gram_st, kmax, dim, cpu)
         Q_tt = gegenbauer.gegenbauer_gpu(gram_tt, kmax, dim, cpu)
-        
                 
         del X_teach, X_stu, X_test
         cp.get_default_memory_pool().free_all_blocks()
         cp.get_default_pinned_memory_pool().free_all_blocks()
-
 
         # Define the teacher function corrupted by noise (target function)
         sigma = np.random.normal(0, np.sqrt(noise_var*P_teach), (P_stu, len(noise_var)))
         alpha_teach = np.sign(np.random.random_sample(P_teach) - 0.5 * np.ones(P_teach))
         alpha_teach = cp.outer(cp.asarray(alpha_teach), cp.ones(len(noise_var)))
         y_teach = cp.dot(K_stu_te, alpha_teach) + cp.asarray(sigma)
-        
 
         # Calculate the regression result for student function
         K_inv = cp.linalg.inv(cp.asarray(K_student) + lamb * cp.eye(P_stu))
         alpha_stu = cp.dot(K_inv, y_teach)
-
 
         errors = cp.zeros((kmax, len(noise_var)))
         for k in range(kmax):
@@ -226,9 +205,7 @@ def generalization_gpu(P_stu, P_teach, P_test, spectrum, degens, dim, kmax, num_
         curr_err = errors_tot_MC/(i+1)
         
         print('P = ' + "%0.02f: " % P_stu + str(i + 1) + "/" + str(num_repeats) 
-              + " error: " + "%0.03f" % np.mean(error_diff), end='\r')
-    
-    
+              + " error: " + "%0.03f" % np.mean(error_diff))
     
     all_errs_cpu = cp.asnumpy(all_errs)
     all_MC_cpu = cp.asnumpy(all_MC)
@@ -238,14 +215,13 @@ def generalization_gpu(P_stu, P_teach, P_test, spectrum, degens, dim, kmax, num_
     std_errs = np.array([np.std(all_errs_cpu[:,:,i], axis=0) for i in range(len(noise_var))]).T
     std_MC = np.array([np.std(all_MC_cpu[:,i]) for i in range(len(noise_var))])
     
-    
     del all_errs, all_MC, errors_avg, errors_tot_MC
     cp.get_default_memory_pool().free_all_blocks()
     cp.get_default_pinned_memory_pool().free_all_blocks()
 
     return errors_avg_cpu/P_teach, errors_tot_MC_cpu/P_teach, std_errs/P_teach, std_MC/P_teach
     
-### On GPU
+### Gaussian Regression Function (only on GPU using Cupy)
     
 def sample_gaussian_points_gpu(p, dim, sigma):
     import cupy as cp
