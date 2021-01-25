@@ -37,10 +37,9 @@ def compute_kernel(X, Xp, spectrum, degens, dim, kmax):
 
 
 def generalization_cpu(P_stu, P_teach, P_test, spectrum, degens, dim, kmax, num_repeats, lamb=0, noise_var=0, cpu = False, calculate_mode_errs = False):
-    import cupy as cp
-    
-    expected_errs = cp.zeros((num_repeats, kmax, len(noise_var)))
-    regression_errs = cp.zeros((num_repeats, len(noise_var)))
+
+    expected_errs = np.zeros((num_repeats, kmax, len(noise_var)))
+    regression_errs = np.zeros((num_repeats, len(noise_var)))
 
     for i in range(num_repeats):
         # Define student and teacher inputs
