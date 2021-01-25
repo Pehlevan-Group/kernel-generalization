@@ -202,10 +202,10 @@ def generalization_gpu(P_stu, P_teach, P_test, spectrum, degens, dim, kmax, num_
         errors_tot_MC += tot_error/ num_repeats
         all_MC[i] = tot_error
 
-        error_diff = np.abs(tot_error - np.mean(errors, axis = 0))/ tot_error
+        error_diff = np.abs(tot_error - np.sum(errors, axis = 0))/ tot_error
         curr_err = errors_tot_MC/(i+1)
         
-        sys.stdout.write("\r P = %0.02f | noise = %0.02f | Repeat %d/%d | error: %0.03f" %(P_stu, noise_var[0], i+1, num_repeats, np.mean(error_diff)))
+        sys.stdout.write("\r P = %0.02f | noise = %0.02f | Repeat %d/%d | error: %0.03f" %(P_stu, noise_var[0], i+1, num_repeats, np.mean(tot_error)))
         
         #print('P = ' + "%0.02f: " % P_stu + str(i + 1) + "/" + str(num_repeats)+" error: " + "%0.03f" % np.mean(error_diff))
     
