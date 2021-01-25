@@ -218,7 +218,7 @@ def generalization_gpu(P_stu, P_teach, P_test, spectrum, degens, dim, kmax, num_
         K_student = compute_kernel_gpu(gram_ss, P_stu, P_stu, spectrum, degens, dim, kmax)
         K_stu_te = compute_kernel_gpu(gram_st, P_stu, P_teach, spectrum, degens, dim, kmax)
                 
-        del X_teach, X_stu, X_test
+        del X_teach, X_stu, X_test, gram_stest, gram_ttest
         cp.get_default_memory_pool().free_all_blocks()
         cp.get_default_pinned_memory_pool().free_all_blocks()
 
@@ -251,21 +251,21 @@ def generalization_gpu(P_stu, P_teach, P_test, spectrum, degens, dim, kmax, num_
                 Q_ttk = cp.asarray(Q_tt[k].reshape(P_teach, P_teach))
                 a = (dim - 2) / 2
                 prefactor = spectrum[k] ** 2 * (k + a) / a
-
+            
                 alpha_tt = (alpha_teach[:,0].T).dot(Q_ttk.dot(alpha_teach[:,0]))
                 for n in range(len(noise_var)):
                     alpha_ss = (alpha_stu[:,n].T).dot(Q_ssk.dot(alpha_stu[:,n]))
                     alpha_st = (alpha_stu[:,n].T).dot(Q_stk.dot(alpha_teach[:,n]))
-
+        
                     expected_errs[i,k,n] = prefactor * (alpha_ss - 2 * alpha_st + alpha_tt)
-
+        
                 del alpha_tt, alpha_ss, alpha_st, Q_ssk, Q_stk, Q_ttk
                 cp.get_default_memory_pool().free_all_blocks()
                 cp.get_default_pinned_memory_pool().free_all_blocks()
-            else:
-                del gram_ss, gram_st, gram_tt
-                cp.get_default_memory_pool().free_all_blocks()
-                cp.get_default_pinned_memory_pool().free_all_blocks()
+        else:
+            del gram_ss, gram_st, gram_tt
+            cp.get_default_memory_pool().free_all_blocks()
+            cp.get_default_pinned_memory_pool().free_all_blocks()
             
             del Q_ss, Q_st, Q_tt
             cp.get_default_memory_pool().free_all_blocks()
