@@ -35,6 +35,77 @@ def compute_kernel(X, Xp, spectrum, degens, dim, kmax):
     
     return K
 
+
+def generalization_cpu(P_stu, P_teach, P_test, spectrum, degens, dim, kmax, num_repeats, lamb=0, noise_var=0, cpu = False, calculate_mode_errs = False):
+    import cupy as cp
+    
+    expected_errs = cp.zeros((num_repeats, kmax, len(noise_var)))
+    regression_errs = cp.zeros((num_repeats, len(noise_var)))
+
+    for i in range(num_repeats):
+        # Define student and teacher inputs
+        X_teach = sample_random_points(P_teach, dim)
+        X_stu = sample_random_points(P_stu, dim)
+
+        # Calculate the kernel Gram matrices
+        K_student = compute_kernel(X_stu, X_stu, spectrum, degens, dim, kmax)
+        K_stu_te = compute_kernel(X_stu, X_teach, spectrum, degens, dim, kmax)
+
+        # Define the teacher function corrupted by noise (target function)
+        sigma = np.random.normal(0, np.sqrt(noise_var), (P_stu, len(noise_var)))
+        alpha_teach = np.sign(np.random.random_sample(P_teach) - 0.5 * np.ones(P_teach))/np.sqrt(P_teach)
+        alpha_teach = np.outer(alpha_teach, np.ones(len(noise_var)))
+        y_teach = dot_prod(K_stu_te, alpha_teach) + sigma
+        
+        # Calculate the regression result for student function
+        K_inv = np.linalg.inv(K_student + lamb * np.eye(P_stu))
+        alpha_stu = dot_prod(K_inv, y_teach)
+
+        X_test = sample_random_points(P_test, dim)
+        K_s = compute_kernel(X_stu, X_test, spectrum, degens, dim, kmax)
+        K_t = compute_kernel(X_teach, X_test, spectrum, degens, dim, kmax)
+
+        y_s = dot_prod(K_s.T, alpha_stu)
+        y_t = dot_prod(K_t.T, alpha_teach)
+        regression_errs[i] = np.mean((y_s - y_t)**2, axis = 0)
+        
+        if calculate_mode_errs:
+            gram_ss = dot_prod(X_stu, X_stu.T)
+            gram_st = dot_prod(X_stu, X_teach.T)
+            gram_tt = dot_prod(X_teach, X_teach.T)
+            # Calculate the Gegenbaur polys for finding mode errors
+            Q_ss = gegenbauer.gegenbauer(gram_ss.reshape(P_stu ** 2), kmax, dim)
+            Q_st = gegenbauer.gegenbauer(gram_st.reshape(P_stu * P_teach), kmax, dim)
+            Q_tt = gegenbauer.gegenbauer(gram_tt.reshape(P_teach ** 2), kmax, dim)
+            
+            for k in range(kmax):
+                Q_ssk = Q_ss[k].reshape(P_stu, P_stu)
+                Q_stk = Q_st[k].reshape(P_stu, P_teach)
+                Q_ttk = Q_tt[k].reshape(P_teach, P_teach)
+                a = (dim - 2) / 2
+                prefactor = spectrum[k] ** 2 * (k + a) / a
+
+                alpha_tt = (alpha_teach[:,0].T).dot(Q_ttk.dot(alpha_teach[:,0]))
+                for n in range(len(noise_var)):
+                    alpha_ss = (alpha_stu[:,n].T).dot(Q_ssk.dot(alpha_stu[:,n]))
+                    alpha_st = (alpha_stu[:,n].T).dot(Q_stk.dot(alpha_teach[:,n]))
+
+                    expected_errs[i,k,n] = prefactor * (alpha_ss - 2 * alpha_st + alpha_tt)
+        
+        #error_diff = np.abs(tot_error - np.sum(errors, axis = 0))/ tot_error
+        
+        sys.stdout.write("\r P = %0.02f | noise = %0.02f | Repeat %d/%d | error: %0.03f" %(P_stu, noise_var[0], i+1, num_repeats, 0))
+    
+    print("")
+    
+    expected_errs_mean = expected_errs.mean(axis = 0)
+    expected_errs_std = expected_errs.std(axis = 0)
+    
+    regression_errs_mean = regression_errs.mean(axis = 0)
+    regression_errs_std = regression_errs.std(axis = 0)
+
+    return expected_errs_mean, expected_errs_std, regression_errs_mean, regression_errs_std
+
 def generalization(P_stu, P_teach, P_test, spectrum, degens, dim, kmax, num_repeats, lamb=0, noise_var=0):
     errors_avg = np.zeros((kmax, len(noise_var)))
     errors_tot_MC = np.zeros(len(noise_var))
@@ -208,8 +279,6 @@ def generalization_gpu(P_stu, P_teach, P_test, spectrum, degens, dim, kmax, num_
         #error_diff = np.abs(tot_error - np.sum(errors, axis = 0))/ tot_error
         
         sys.stdout.write("\r P = %0.02f | noise = %0.02f | Repeat %d/%d | error: %0.03f" %(P_stu, noise_var[0], i+1, num_repeats, 0))
-        
-        #print('P = ' + "%0.02f: " % P_stu + str(i + 1) + "/" + str(num_repeats)+" error: " + "%0.03f" % np.mean(error_diff))
     
     print("")
     
@@ -218,9 +287,6 @@ def generalization_gpu(P_stu, P_teach, P_test, spectrum, degens, dim, kmax, num_
     
     regression_errs_mean = cp.asnumpy(regression_errs.mean(axis = 0))
     regression_errs_std = cp.asnumpy(regression_errs.std(axis = 0))
-    
-#     std_errs = np.array([np.std(all_errs_cpu[:,:,i], axis=0) for i in range(len(noise_var))]).T
-#     std_MC = np.array([np.std(all_MC_cpu[:,i]) for i in range(len(noise_var))])
     
     del expected_errs, regression_errs
     cp.get_default_memory_pool().free_all_blocks()
