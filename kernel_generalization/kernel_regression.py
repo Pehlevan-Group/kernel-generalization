@@ -6,6 +6,7 @@ from kernel_generalization.utils import gegenbauer
 import matplotlib.pyplot as plt
 import numba
 from numba import jit, int64
+import sys
 
 def sample_random_points(num_pts, d):
     R = np.random.multivariate_normal(np.zeros(d), np.eye(d), num_pts)
@@ -204,9 +205,11 @@ def generalization_gpu(P_stu, P_teach, P_test, spectrum, degens, dim, kmax, num_
         error_diff = np.abs(tot_error - np.sum(errors, axis = 0))/ tot_error
         curr_err = errors_tot_MC/(i+1)
         
-        print('P = ' + "%0.02f: " % P_stu + str(i + 1) + "/" + str(num_repeats) 
-              + " error: " + "%0.03f" % np.mean(error_diff))
+        sys.stdout.write("\r P = %0.02f: %d/%d error: %0.03f" %(P_stu, i+1, num_repeats, np.mean(error_diff)))
+        
+        #print('P = ' + "%0.02f: " % P_stu + str(i + 1) + "/" + str(num_repeats)+" error: " + "%0.03f" % np.mean(error_diff))
     
+    print("")
     all_errs_cpu = cp.asnumpy(all_errs)
     all_MC_cpu = cp.asnumpy(all_MC)
     errors_avg_cpu = cp.asnumpy(errors_avg)
