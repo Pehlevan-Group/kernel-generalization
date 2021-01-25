@@ -124,10 +124,8 @@ def compute_kernel_gpu(gram, P, Pp, spectrum, degens, dim, kmax):
 
 def generalization_gpu(P_stu, P_teach, P_test, spectrum, degens, dim, kmax, num_repeats, lamb=0, noise_var=0, cpu = False):
     import cupy as cp
-    errors_avg = cp.zeros((kmax, len(noise_var)))
-    errors_tot_MC = cp.zeros(len(noise_var))
-    all_errs = cp.zeros((num_repeats, kmax, len(noise_var)))
-    all_MC = cp.zeros((num_repeats, len(noise_var)))
+    
+    expected_errs = cp.zeros((num_repeats, kmax, len(noise_var)))
     regression_errs = cp.zeros((num_repeats, len(noise_var)))
 
     for i in range(num_repeats):
@@ -169,7 +167,6 @@ def generalization_gpu(P_stu, P_teach, P_test, spectrum, degens, dim, kmax, num_
         K_inv = cp.linalg.inv(cp.asarray(K_student) + lamb * cp.eye(P_stu))
         alpha_stu = cp.dot(K_inv, y_teach)
 
-        errors = cp.zeros((kmax, len(noise_var)))
         for k in range(kmax):
             Q_ssk = cp.asarray(Q_ss[k].reshape(P_stu, P_stu))
             Q_stk = cp.asarray(Q_st[k].reshape(P_stu, P_teach))
@@ -182,52 +179,42 @@ def generalization_gpu(P_stu, P_teach, P_test, spectrum, degens, dim, kmax, num_
                 alpha_ss = (alpha_stu[:,n].T).dot(Q_ssk.dot(alpha_stu[:,n]))
                 alpha_st = (alpha_stu[:,n].T).dot(Q_stk.dot(alpha_teach[:,n]))
                 
-                errors[k,n] = prefactor * (alpha_ss - 2 * alpha_st + alpha_tt)
-            
+                expected_errs[i,k,n] = prefactor * (alpha_ss - 2 * alpha_st + alpha_tt)
             
             del alpha_tt, alpha_ss, alpha_st, Q_ssk, Q_stk, Q_ttk
             cp.get_default_memory_pool().free_all_blocks()
             cp.get_default_pinned_memory_pool().free_all_blocks()
 
-        errors_avg += errors / num_repeats
-        all_errs[i] = errors
-        
         y_s = cp.dot(K_s, alpha_stu)
         y_t = cp.dot(K_t, alpha_teach)
-        tot_error = cp.mean((y_s - y_t)**2, axis = 0)
+        regression_errs[i] = cp.mean((y_s - y_t)**2, axis = 0)
         
         del K_student, K_stu_te, Q_ss, Q_st, Q_tt, K_s, K_t, y_s, y_t, gram_ss, gram_st, gram_tt
         cp.get_default_memory_pool().free_all_blocks()
         cp.get_default_pinned_memory_pool().free_all_blocks()
         
-        errors_tot_MC += tot_error/ num_repeats
-        all_MC[i] = tot_error
-        regression_errs[i] = tot_error
-
-        error_diff = np.abs(tot_error - np.sum(errors, axis = 0))/ tot_error
-        curr_err = errors_tot_MC/(i+1)
+        #error_diff = np.abs(tot_error - np.sum(errors, axis = 0))/ tot_error
         
-        sys.stdout.write("\r P = %0.02f | noise = %0.02f | Repeat %d/%d | error: %0.03f" %(P_stu, noise_var[0], i+1, num_repeats, np.mean(tot_error)))
+        sys.stdout.write("\r P = %0.02f | noise = %0.02f | Repeat %d/%d | error: %0.03f" %(P_stu, noise_var[0], i+1, num_repeats, 0))
         
         #print('P = ' + "%0.02f: " % P_stu + str(i + 1) + "/" + str(num_repeats)+" error: " + "%0.03f" % np.mean(error_diff))
     
     print("")
-    all_errs_cpu = cp.asnumpy(all_errs)
-    all_MC_cpu = cp.asnumpy(all_MC)
-    errors_avg_cpu = cp.asnumpy(errors_avg)
-    errors_tot_MC_cpu = cp.asnumpy(errors_tot_MC)
     
-    regression_errs = cp.asnumpy(regression_errs.mean(axis = 0))
-    regression_std = cp.asnumpy(regression_errs.std(axis = 0))
+    expected_errs_mean = cp.asnumpy(expected_errs.mean(axis = 0))
+    expected_errs_std = cp.asnumpy(expected_errs.std(axis = 0))
     
-    std_errs = np.array([np.std(all_errs_cpu[:,:,i], axis=0) for i in range(len(noise_var))]).T
-    std_MC = np.array([np.std(all_MC_cpu[:,i]) for i in range(len(noise_var))])
+    regression_errs_mean = cp.asnumpy(regression_errs.mean(axis = 0))
+    regression_errs_std = cp.asnumpy(regression_errs.std(axis = 0))
     
-    del all_errs, all_MC, errors_avg, errors_tot_MC
+#     std_errs = np.array([np.std(all_errs_cpu[:,:,i], axis=0) for i in range(len(noise_var))]).T
+#     std_MC = np.array([np.std(all_MC_cpu[:,i]) for i in range(len(noise_var))])
+    
+    del expected_errs, regression_errs
     cp.get_default_memory_pool().free_all_blocks()
     cp.get_default_pinned_memory_pool().free_all_blocks()
 
-    return errors_avg_cpu, errors_tot_MC_cpu, regression_errs, std_errs, std_MC, regression_std
+    return expected_errs_mean, expected_errs_std, regression_errs_mean, regression_errs_std
     
 ### Gaussian Regression Function (only on GPU using Cupy)
     
