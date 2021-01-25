@@ -105,7 +105,7 @@ def generalization(P_stu, P_teach, P_test, spectrum, degens, dim, kmax, num_repe
 
     return errors_avg/P_teach, errors_tot_MC/P_teach, std_errs/P_teach, std_MC/P_teach
 
-def compute_kernel_gpu(gram, P, Pp, spectrum, degens, dim, kmax):
+def compute_kernel_gpu(gram, P, Pp, spectrum, degens, dim, kmax, cpu=False):
     import cupy as cp
     alpha = (dim - 2) / 2
     k = np.linspace(0, kmax - 1, kmax)
