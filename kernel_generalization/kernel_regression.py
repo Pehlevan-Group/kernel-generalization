@@ -105,13 +105,13 @@ def generalization(P_stu, P_teach, P_test, spectrum, degens, dim, kmax, num_repe
 
     return errors_avg/P_teach, errors_tot_MC/P_teach, std_errs/P_teach, std_MC/P_teach
 
-def compute_kernel_gpu(gram, P, Pp, spectrum, degens, dim, kmax, cpu=False):
+def compute_kernel_gpu(gram, P, Pp, spectrum, degens, dim, kmax):
     import cupy as cp
     alpha = (dim - 2) / 2
     k = np.linspace(0, kmax - 1, kmax)
     spec = cp.asarray(spectrum * (k / alpha + 1))
 
-    Q = gegenbauer.gegenbauer_gpu(gram, kmax, dim, cpu)    
+    Q = gegenbauer.gegenbauer_gpu(gram, kmax, dim)    
     K = cp.dot(Q.T, spec)
     K = cp.reshape(K, (P, Pp))
     
@@ -143,15 +143,15 @@ def generalization_gpu(P_stu, P_teach, P_test, spectrum, degens, dim, kmax, num_
         gram_ttest = cp.dot(X_teach, X_test.T).reshape(P_teach*P_test)
 
         # Calculate the kernel Gram matrices and Gegenbaur polys
-        K_student = compute_kernel_gpu(gram_ss, P_stu, P_stu, spectrum, degens, dim, kmax, cpu)
-        K_stu_te = compute_kernel_gpu(gram_st, P_stu, P_teach, spectrum, degens, dim, kmax, cpu)
+        K_student = compute_kernel_gpu(gram_ss, P_stu, P_stu, spectrum, degens, dim, kmax)
+        K_stu_te = compute_kernel_gpu(gram_st, P_stu, P_teach, spectrum, degens, dim, kmax)
             
-        K_s = compute_kernel_gpu(gram_stest, P_stu, P_test, spectrum, degens, dim, kmax, cpu).T
-        K_t = compute_kernel_gpu(gram_ttest, P_teach, P_test, spectrum, degens, dim, kmax, cpu).T
+        K_s = compute_kernel_gpu(gram_stest, P_stu, P_test, spectrum, degens, dim, kmax).T
+        K_t = compute_kernel_gpu(gram_ttest, P_teach, P_test, spectrum, degens, dim, kmax).T
         
-        Q_ss = gegenbauer.gegenbauer_gpu(gram_ss, kmax, dim, cpu)
-        Q_st = gegenbauer.gegenbauer_gpu(gram_st, kmax, dim, cpu)
-        Q_tt = gegenbauer.gegenbauer_gpu(gram_tt, kmax, dim, cpu)
+        Q_ss = gegenbauer.gegenbauer_gpu(gram_ss, kmax, dim)
+        Q_st = gegenbauer.gegenbauer_gpu(gram_st, kmax, dim)
+        Q_tt = gegenbauer.gegenbauer_gpu(gram_tt, kmax, dim)
                 
         del X_teach, X_stu, X_test
         cp.get_default_memory_pool().free_all_blocks()
