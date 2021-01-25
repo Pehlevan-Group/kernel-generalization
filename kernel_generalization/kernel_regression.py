@@ -160,7 +160,7 @@ def generalization_gpu(P_stu, P_teach, P_test, spectrum, degens, dim, kmax, num_
 
         # Define the teacher function corrupted by noise (target function)
         sigma = np.random.normal(0, np.sqrt(noise_var*P_teach), (P_stu, len(noise_var)))
-        alpha_teach = np.sign(np.random.random_sample(P_teach) - 0.5 * np.ones(P_teach))
+        alpha_teach = np.sign(np.random.random_sample(P_teach) - 0.5 * np.ones(P_teach))/np.sqrt(P_teach)
         alpha_teach = cp.outer(cp.asarray(alpha_teach), cp.ones(len(noise_var)))
         y_teach = cp.dot(K_stu_te, alpha_teach) + cp.asarray(sigma)
 
