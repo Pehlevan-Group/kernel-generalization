@@ -122,7 +122,7 @@ def compute_kernel_gpu(gram, P, Pp, spectrum, degens, dim, kmax):
     
     return K #, Q
 
-def generalization_gpu(P_stu, P_teach, P_test, spectrum, degens, dim, kmax, num_repeats, lamb=0, noise_var=0, cpu = False):
+def generalization_gpu(P_stu, P_teach, P_test, spectrum, degens, dim, kmax, num_repeats, lamb=0, noise_var=0, cpu = False, calculate_mode_errs = False):
     import cupy as cp
     
     expected_errs = cp.zeros((num_repeats, kmax, len(noise_var)))
@@ -135,23 +135,18 @@ def generalization_gpu(P_stu, P_teach, P_test, spectrum, degens, dim, kmax, num_
         X_stu = cp.asarray(sample_random_points(P_stu, dim))
         X_test = cp.asarray(sample_random_points(P_test, dim))
         
-        gram_ss = cp.dot(X_stu, X_stu.T).reshape(P_stu*P_stu)
-        gram_st = cp.dot(X_stu, X_teach.T).reshape(P_stu*P_teach)
-        gram_tt = cp.dot(X_teach, X_teach.T).reshape(P_teach*P_teach)
-        
+        # Calculate the kernel Gram matrices
         gram_stest = cp.dot(X_stu, X_test.T).reshape(P_stu*P_test)
         gram_ttest = cp.dot(X_teach, X_test.T).reshape(P_teach*P_test)
-
-        # Calculate the kernel Gram matrices and Gegenbaur polys
-        K_student = compute_kernel_gpu(gram_ss, P_stu, P_stu, spectrum, degens, dim, kmax)
-        K_stu_te = compute_kernel_gpu(gram_st, P_stu, P_teach, spectrum, degens, dim, kmax)
-            
         K_s = compute_kernel_gpu(gram_stest, P_stu, P_test, spectrum, degens, dim, kmax).T
         K_t = compute_kernel_gpu(gram_ttest, P_teach, P_test, spectrum, degens, dim, kmax).T
         
-        Q_ss = gegenbauer.gegenbauer_gpu(gram_ss, kmax, dim)
-        Q_st = gegenbauer.gegenbauer_gpu(gram_st, kmax, dim)
-        Q_tt = gegenbauer.gegenbauer_gpu(gram_tt, kmax, dim)
+        # Calculate the kernel Gram matrices
+        gram_ss = cp.dot(X_stu, X_stu.T).reshape(P_stu*P_stu)
+        gram_st = cp.dot(X_stu, X_teach.T).reshape(P_stu*P_teach)
+        gram_tt = cp.dot(X_teach, X_teach.T).reshape(P_teach*P_teach)
+        K_student = compute_kernel_gpu(gram_ss, P_stu, P_stu, spectrum, degens, dim, kmax)
+        K_stu_te = compute_kernel_gpu(gram_st, P_stu, P_teach, spectrum, degens, dim, kmax)
                 
         del X_teach, X_stu, X_test
         cp.get_default_memory_pool().free_all_blocks()
@@ -166,30 +161,47 @@ def generalization_gpu(P_stu, P_teach, P_test, spectrum, degens, dim, kmax, num_
         # Calculate the regression result for student function
         K_inv = cp.linalg.inv(cp.asarray(K_student) + lamb * cp.eye(P_stu))
         alpha_stu = cp.dot(K_inv, y_teach)
-
-        for k in range(kmax):
-            Q_ssk = cp.asarray(Q_ss[k].reshape(P_stu, P_stu))
-            Q_stk = cp.asarray(Q_st[k].reshape(P_stu, P_teach))
-            Q_ttk = cp.asarray(Q_tt[k].reshape(P_teach, P_teach))
-            a = (dim - 2) / 2
-            prefactor = spectrum[k] ** 2 * (k + a) / a
-            
-            alpha_tt = (alpha_teach[:,0].T).dot(Q_ttk.dot(alpha_teach[:,0]))
-            for n in range(len(noise_var)):
-                alpha_ss = (alpha_stu[:,n].T).dot(Q_ssk.dot(alpha_stu[:,n]))
-                alpha_st = (alpha_stu[:,n].T).dot(Q_stk.dot(alpha_teach[:,n]))
-                
-                expected_errs[i,k,n] = prefactor * (alpha_ss - 2 * alpha_st + alpha_tt)
-            
-            del alpha_tt, alpha_ss, alpha_st, Q_ssk, Q_stk, Q_ttk
-            cp.get_default_memory_pool().free_all_blocks()
-            cp.get_default_pinned_memory_pool().free_all_blocks()
-
+        
         y_s = cp.dot(K_s, alpha_stu)
         y_t = cp.dot(K_t, alpha_teach)
         regression_errs[i] = cp.mean((y_s - y_t)**2, axis = 0)
         
-        del K_student, K_stu_te, Q_ss, Q_st, Q_tt, K_s, K_t, y_s, y_t, gram_ss, gram_st, gram_tt
+        if calculate_mode_errs:
+            # Calculate the Gegenbaur polys for finding mode errors
+            Q_ss = gegenbauer.gegenbauer_gpu(gram_ss, kmax, dim)
+            Q_st = gegenbauer.gegenbauer_gpu(gram_st, kmax, dim)
+            Q_tt = gegenbauer.gegenbauer_gpu(gram_tt, kmax, dim)
+            del gram_ss, gram_st, gram_tt
+            cp.get_default_memory_pool().free_all_blocks()
+            cp.get_default_pinned_memory_pool().free_all_blocks()
+            
+            for k in range(kmax):
+                Q_ssk = cp.asarray(Q_ss[k].reshape(P_stu, P_stu))
+                Q_stk = cp.asarray(Q_st[k].reshape(P_stu, P_teach))
+                Q_ttk = cp.asarray(Q_tt[k].reshape(P_teach, P_teach))
+                a = (dim - 2) / 2
+                prefactor = spectrum[k] ** 2 * (k + a) / a
+
+                alpha_tt = (alpha_teach[:,0].T).dot(Q_ttk.dot(alpha_teach[:,0]))
+                for n in range(len(noise_var)):
+                    alpha_ss = (alpha_stu[:,n].T).dot(Q_ssk.dot(alpha_stu[:,n]))
+                    alpha_st = (alpha_stu[:,n].T).dot(Q_stk.dot(alpha_teach[:,n]))
+
+                    expected_errs[i,k,n] = prefactor * (alpha_ss - 2 * alpha_st + alpha_tt)
+
+                del alpha_tt, alpha_ss, alpha_st, Q_ssk, Q_stk, Q_ttk
+                cp.get_default_memory_pool().free_all_blocks()
+                cp.get_default_pinned_memory_pool().free_all_blocks()
+            else:
+                del gram_ss, gram_st, gram_tt
+                cp.get_default_memory_pool().free_all_blocks()
+                cp.get_default_pinned_memory_pool().free_all_blocks()
+            
+            del Q_ss, Q_st, Q_tt
+            cp.get_default_memory_pool().free_all_blocks()
+            cp.get_default_pinned_memory_pool().free_all_blocks()
+
+        del K_student, K_stu_te, K_s, K_t, y_s, y_t, 
         cp.get_default_memory_pool().free_all_blocks()
         cp.get_default_pinned_memory_pool().free_all_blocks()
         
