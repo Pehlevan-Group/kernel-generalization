@@ -128,6 +128,7 @@ def generalization_gpu(P_stu, P_teach, P_test, spectrum, degens, dim, kmax, num_
     errors_tot_MC = cp.zeros(len(noise_var))
     all_errs = cp.zeros((num_repeats, kmax, len(noise_var)))
     all_MC = cp.zeros((num_repeats, len(noise_var)))
+    regression_errs = cp.zeros((num_repeats, len(noise_var)))
 
     for i in range(num_repeats):
         #############################################
@@ -201,6 +202,7 @@ def generalization_gpu(P_stu, P_teach, P_test, spectrum, degens, dim, kmax, num_
         
         errors_tot_MC += tot_error/ num_repeats
         all_MC[i] = tot_error
+        regression_errs[i] = tot_error
 
         error_diff = np.abs(tot_error - np.sum(errors, axis = 0))/ tot_error
         curr_err = errors_tot_MC/(i+1)
@@ -215,6 +217,9 @@ def generalization_gpu(P_stu, P_teach, P_test, spectrum, degens, dim, kmax, num_
     errors_avg_cpu = cp.asnumpy(errors_avg)
     errors_tot_MC_cpu = cp.asnumpy(errors_tot_MC)
     
+    regression_errs = cp.asnumpy(regression_errs.mean(axis = 0))
+    regression_std = cp.asnumpy(regression_errs.std(axis = 0))
+    
     std_errs = np.array([np.std(all_errs_cpu[:,:,i], axis=0) for i in range(len(noise_var))]).T
     std_MC = np.array([np.std(all_MC_cpu[:,i]) for i in range(len(noise_var))])
     
@@ -222,7 +227,7 @@ def generalization_gpu(P_stu, P_teach, P_test, spectrum, degens, dim, kmax, num_
     cp.get_default_memory_pool().free_all_blocks()
     cp.get_default_pinned_memory_pool().free_all_blocks()
 
-    return errors_avg_cpu, errors_tot_MC_cpu, std_errs, std_MC
+    return errors_avg_cpu, [errors_tot_MC_cpu,regression_errs], std_errs, [std_MC,regression_std]
     
 ### Gaussian Regression Function (only on GPU using Cupy)
     
