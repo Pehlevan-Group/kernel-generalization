@@ -36,7 +36,7 @@ def compute_kernel(X, Xp, spectrum, degens, dim, kmax):
     return K
 
 
-def generalization_cpu(P_stu, P_teach, P_test, spectrum, degens, dim, kmax, num_repeats, lamb=0, noise_var=0, cpu = False, calculate_mode_errs = False):
+def generalization_cpu(P_stu, P_teach, P_test, spectrum, degens, dim, kmax, num_repeats, lamb=0, noise_var=0, calculate_mode_errs = False):
 
     expected_errs = np.zeros((num_repeats, kmax, len(noise_var)))
     regression_errs = np.zeros((num_repeats, len(noise_var)))
@@ -192,7 +192,7 @@ def compute_kernel_gpu(gram, P, Pp, spectrum, degens, dim, kmax):
     
     return K #, Q
 
-def generalization_gpu(P_stu, P_teach, P_test, spectrum, degens, dim, kmax, num_repeats, lamb=0, noise_var=0, cpu = False, calculate_mode_errs = False):
+def generalization_gpu(P_stu, P_teach, P_test, spectrum, degens, dim, kmax, num_repeats, lamb=0, noise_var=0, calculate_mode_errs = False):
     import cupy as cp
     
     expected_errs = cp.zeros((num_repeats, kmax, len(noise_var)))
