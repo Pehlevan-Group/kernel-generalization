@@ -143,11 +143,11 @@ def generalization_gpu(P_stu, P_teach, P_test, spectrum, degens, dim, kmax, num_
         gram_ttest = cp.dot(X_teach, X_test.T).reshape(P_teach*P_test)
 
         # Calculate the kernel Gram matrices and Gegenbaur polys
-        K_student = compute_kernel(gram_ss, P_stu, P_stu, spectrum, degens, dim, kmax, cpu)
-        K_stu_te = compute_kernel(gram_st, P_stu, P_teach, spectrum, degens, dim, kmax, cpu)
+        K_student = compute_kernel_gpu(gram_ss, P_stu, P_stu, spectrum, degens, dim, kmax, cpu)
+        K_stu_te = compute_kernel_gpu(gram_st, P_stu, P_teach, spectrum, degens, dim, kmax, cpu)
             
-        K_s = compute_kernel(gram_stest, P_stu, P_test, spectrum, degens, dim, kmax, cpu).T
-        K_t = compute_kernel(gram_ttest, P_teach, P_test, spectrum, degens, dim, kmax, cpu).T
+        K_s = compute_kernel_gpu(gram_stest, P_stu, P_test, spectrum, degens, dim, kmax, cpu).T
+        K_t = compute_kernel_gpu(gram_ttest, P_teach, P_test, spectrum, degens, dim, kmax, cpu).T
         
         Q_ss = gegenbauer.gegenbauer_gpu(gram_ss, kmax, dim, cpu)
         Q_st = gegenbauer.gegenbauer_gpu(gram_st, kmax, dim, cpu)
