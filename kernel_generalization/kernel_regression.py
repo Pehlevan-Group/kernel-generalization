@@ -227,7 +227,7 @@ def generalization_gpu(P_stu, P_teach, P_test, spectrum, degens, dim, kmax, num_
     cp.get_default_memory_pool().free_all_blocks()
     cp.get_default_pinned_memory_pool().free_all_blocks()
 
-    return errors_avg_cpu, [errors_tot_MC_cpu,regression_errs], std_errs, [std_MC,regression_std]
+    return errors_avg_cpu, errors_tot_MC_cpu, regression_errs, std_errs, std_MC, regression_std
     
 ### Gaussian Regression Function (only on GPU using Cupy)
     
