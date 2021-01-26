@@ -20,7 +20,6 @@ def dot_prod(X,Y):
 
 @jit(nopython=True, parallel=True)
 def compute_kernel(X, Xp, spectrum, degens, dim, kmax):
-
     alpha = (dim - 2) / 2
     k = np.linspace(0, kmax - 1, kmax)
     spec = spectrum * (k / alpha + 1)
@@ -29,15 +28,12 @@ def compute_kernel(X, Xp, spectrum, degens, dim, kmax):
     Pp = Xp.shape[0]
     gram = dot_prod(X, Xp.T)
     gram = np.reshape(gram, P * Pp)
-    
     Q = gegenbauer.gegenbauer(gram, kmax, dim)
     K = dot_prod(Q.T, spec).reshape(P, Pp)
-    
     return K
 
 
 def generalization_cpu(P_stu, P_teach, P_test, spectrum, degens, dim, kmax, num_repeats, lamb=0, noise_var=0, calculate_mode_errs = False):
-
     expected_errs = np.zeros((num_repeats, kmax, len(noise_var)))
     regression_errs = np.zeros((num_repeats, len(noise_var)))
 
@@ -45,17 +41,14 @@ def generalization_cpu(P_stu, P_teach, P_test, spectrum, degens, dim, kmax, num_
         # Define student and teacher inputs
         X_teach = sample_random_points(P_teach, dim)
         X_stu = sample_random_points(P_stu, dim)
-
         # Calculate the kernel Gram matrices
         K_student = compute_kernel(X_stu, X_stu, spectrum, degens, dim, kmax)
         K_stu_te = compute_kernel(X_stu, X_teach, spectrum, degens, dim, kmax)
-
         # Define the teacher function corrupted by noise (target function)
         sigma = np.random.normal(0, np.sqrt(noise_var), (P_stu, len(noise_var)))
         alpha_teach = np.sign(np.random.random_sample(P_teach) - 0.5 * np.ones(P_teach))/np.sqrt(P_teach)
         alpha_teach = np.outer(alpha_teach, np.ones(len(noise_var)))
         y_teach = dot_prod(K_stu_te, alpha_teach) + sigma
-        
         # Calculate the regression result for student function
         K_inv = np.linalg.inv(K_student + lamb * np.eye(P_stu))
         alpha_stu = dot_prod(K_inv, y_teach)
@@ -201,13 +194,11 @@ def generalization_gpu(P_stu, P_teach, P_test, spectrum, degens, dim, kmax, num_
         X_teach = cp.asarray(sample_random_points(P_teach, dim))
         X_stu = cp.asarray(sample_random_points(P_stu, dim))
         X_test = cp.asarray(sample_random_points(P_test, dim))
-        
         # Calculate the kernel Gram matrices
         gram_stest = cp.dot(X_stu, X_test.T).reshape(P_stu*P_test)
         gram_ttest = cp.dot(X_teach, X_test.T).reshape(P_teach*P_test)
         K_s = compute_kernel_gpu(gram_stest, P_stu, P_test, spectrum, degens, dim, kmax).T
         K_t = compute_kernel_gpu(gram_ttest, P_teach, P_test, spectrum, degens, dim, kmax).T
-        
         # Calculate the kernel Gram matrices
         gram_ss = cp.dot(X_stu, X_stu.T).reshape(P_stu*P_stu)
         gram_st = cp.dot(X_stu, X_teach.T).reshape(P_stu*P_teach)
@@ -224,7 +215,6 @@ def generalization_gpu(P_stu, P_teach, P_test, spectrum, degens, dim, kmax, num_
         alpha_teach = np.sign(np.random.random_sample(P_teach) - 0.5 * np.ones(P_teach))/np.sqrt(P_teach)
         alpha_teach = cp.outer(cp.asarray(alpha_teach), cp.ones(len(noise_var)))
         y_teach = cp.dot(K_stu_te, alpha_teach) + cp.asarray(sigma)
-
         # Calculate the regression result for student function
         K_inv = cp.linalg.inv(cp.asarray(K_student) + lamb * cp.eye(P_stu))
         alpha_stu = cp.dot(K_inv, y_teach)
