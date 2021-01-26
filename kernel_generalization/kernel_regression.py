@@ -256,29 +256,26 @@ def generalization_gpu(P_stu, P_teach, P_test, spectrum, degens, dim, kmax, num_
                 for n in range(len(noise_var)):
                     alpha_ss = (alpha_stu[:,n].T).dot(Q_ssk.dot(alpha_stu[:,n]))
                     alpha_st = (alpha_stu[:,n].T).dot(Q_stk.dot(alpha_teach[:,n]))
-        
                     expected_errs[i,k,n] = prefactor * (alpha_ss - 2 * alpha_st + alpha_tt)
-        
+            
                 del alpha_tt, alpha_ss, alpha_st, Q_ssk, Q_stk, Q_ttk
                 cp.get_default_memory_pool().free_all_blocks()
                 cp.get_default_pinned_memory_pool().free_all_blocks()
+                
+            del Q_ss, Q_st, Q_tt
+            cp.get_default_memory_pool().free_all_blocks()
+            cp.get_default_pinned_memory_pool().free_all_blocks()
         else:
             del gram_ss, gram_st, gram_tt
             cp.get_default_memory_pool().free_all_blocks()
             cp.get_default_pinned_memory_pool().free_all_blocks()
             
-            del Q_ss, Q_st, Q_tt
-            cp.get_default_memory_pool().free_all_blocks()
-            cp.get_default_pinned_memory_pool().free_all_blocks()
 
         del K_student, K_stu_te, K_s, K_t, y_s, y_t, 
         cp.get_default_memory_pool().free_all_blocks()
         cp.get_default_pinned_memory_pool().free_all_blocks()
-        
-        #error_diff = np.abs(tot_error - np.sum(errors, axis = 0))/ tot_error
-        
         sys.stdout.write("\r P = %0.02f | noise = %0.02f | Repeat %d/%d | error: %0.03f" %(P_stu, noise_var[0], i+1, num_repeats, 0))
-    
+
     print("")
     
     expected_errs_mean = cp.asnumpy(expected_errs.mean(axis = 0))
