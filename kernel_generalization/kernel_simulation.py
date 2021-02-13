@@ -31,8 +31,10 @@ def solve_kappa(pvals, lamb, spectrum, degens = []):
     sols = np.zeros(len(pvals))
     for i, p in enumerate(pvals):
         args = (p, lamb, spectrum, degens)
-        sols[i] = sp.optimize.root_scalar(kappa_fn, x0=p*np.amax(spectrum), args = args, 
+        sols[i] = sp.optimize.root_scalar(kappa_fn, x0 = lamb, args = args, 
                                           fprime = kappa_fn_derivative, method = 'newton').root
+        
+        # previously x0 = p*np.amax(spectrum)
     return sols
 
 def gamma_fn(p, kappa, spectrum, degens = []):
