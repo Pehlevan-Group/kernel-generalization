@@ -10,8 +10,6 @@ Synthetic Data - Synthetic Kernel Regression: [![Open In Colab](https://colab.re
 
 Real Data - Gaussian Regression: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Pehlevan-Group/kernel-generalization/blob/main/Experiments/RealData_GaussianRegression.ipynb)
 
-Real Data - NTK Regression and NN: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Pehlevan-Group/kernel-generalization/blob/main/Experiments/RealData_NN_NTK_Comparison.ipynb)
-
 
 
 ## Recreate the figures using precomputed data:
