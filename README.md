@@ -1,5 +1,8 @@
 # Theory of Kernel Generalization  
 
+Experiments and figures of the paper "Spectral Bias and Task-Model Alignment Explain Generalization in Kernel Regression and Infinitely Wide Neural Networks"
+https://arxiv.org/abs/2006.13198
+
 ## Paper experiments:
 
 Synthetic Data - Gaussian Regression: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Pehlevan-Group/kernel-generalization/blob/main/Experiments/SynthData_GaussianRegression.ipynb)
