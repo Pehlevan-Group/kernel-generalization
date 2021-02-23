@@ -14,10 +14,14 @@ Real Data - Gaussian Regression: [![Open In Colab](https://colab.research.google
 
 ## Recreate the figures using precomputed data:
 
-Figure 1: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Pehlevan-Group/kernel-generalization/blob/main/PaperFigures/Fig1_MNIST_Classification.ipynb)
+Fig. 1 and Fig. SI.10: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Pehlevan-Group/kernel-generalization/blob/main/PaperFigures/Fig1_FigSI10_MNIST_Classification_Approx_LC.ipynb)
 
-Figure 2: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Pehlevan-Group/kernel-generalization/blob/main/PaperFigures/Fig2_RBF_Regression_MNIST_CIFAR.ipynb)
+Fig. 2 and Fig. SI.1: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Pehlevan-Group/kernel-generalization/blob/main/PaperFigures/Fig2_FigSI1_RBF_Regression_MNIST_CIFAR.ipynb)
 
-Figure 3: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Pehlevan-Group/kernel-generalization/blob/main/PaperFigures/Fig3_Bandlimited_Regression.ipynb)
+Fig. 3, Fig. 4, Fig. SI.2: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Pehlevan-Group/kernel-generalization/blob/main/PaperFigures/Fig3_Fig4_FigSI2_Bandlimited_Regression.ipynb)
 
-Figure 4 and SI.3: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Pehlevan-Group/kernel-generalization/blob/main/PaperFigures/Fig4_Fig.SI.3_GaussianRBF_Synth_Data_Plots.ipynb)
+Fig. 5 and Fig. SI.5: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Pehlevan-Group/kernel-generalization/blob/main/PaperFigures/Fig5_FigSI5_GaussianRBF_Synth_Data_Plots.ipynb)
+
+Fig. 6, Fig. SI.8, Fig. SI.9: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Pehlevan-Group/kernel-generalization/blob/main/PaperFigures/Fig6_FigSI8_FigSI9_NN_NTK_Comparison.ipynb)
+
+Fig. SI.6 and Fig. SI.7: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Pehlevan-Group/kernel-generalization/blob/main/PaperFigures/FigSI6_Power_Law_Regression.ipynb) and [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Pehlevan-Group/kernel-generalization/blob/main/PaperFigures/FigSI7_NTK_Spectrum_Dependence.ipynb)
