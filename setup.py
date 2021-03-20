@@ -1,4 +1,4 @@
-from setuptools import setup, find_packages, find_namespace_packages
+from setuptools import setup, find_packages
 
 # read the contents of your README file
 from os import path
@@ -10,11 +10,9 @@ INSTALL_REQUIRES = [
     'jax>=0.1.77',
 ]
 
-print(find_packages())
-
 setup(
     name='kernel-generalization',
-    license='Apache 2.0',
+    license='MIT License',
     author='Pehlevan Group',
     author_email='canatara@gmail.com',
     install_requires=INSTALL_REQUIRES,
