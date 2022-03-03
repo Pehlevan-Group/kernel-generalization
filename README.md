@@ -13,6 +13,8 @@ Synthetic Data - Synthetic Kernel Regression: [![Open In Colab](https://colab.re
 
 Real Data - Gaussian Regression: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Pehlevan-Group/kernel-generalization/blob/main/Experiments/RealData_GaussianRegression.ipynb)
 
+Numerical Computation of NTK Eigenvalues: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Pehlevan-Group/kernel-generalization/blob/main/kernel_generalization/utils/NTK_gegenbauer_integral.ipynb)
+
 
 
 ## Recreate the figures using precomputed data:
